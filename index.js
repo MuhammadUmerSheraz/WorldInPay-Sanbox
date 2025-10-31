@@ -12,6 +12,8 @@ const PORT = process.env.PORT || 3000;
 const SANDBOX_SECRET_KEY = 'test_secret_key_123';
 
 // Middleware
+// Trust proxy for accurate protocol detection (important for dynamic URLs)
+app.set('trust proxy', true);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
@@ -83,6 +85,17 @@ async function simulate3DS(trx) {
 // POST /h2h/initiate - Initiate card payment
 app.post('/h2h/initiate', async (req, res) => {
   try {
+    // Get dynamic base URL from request
+    const protocol = req.protocol || (req.secure ? 'https' : 'http');
+    const host = req.get('host');
+    if (!host) {
+      return res.status(400).json({
+        status: 'error',
+        message: ['Host header is required']
+      });
+    }
+    const baseUrl = `${protocol}://${host}`;
+    
     const {
       public_key,
       amount,
@@ -207,7 +220,8 @@ app.post('/h2h/initiate', async (req, res) => {
       requires3DS = true;
       otpCode = '666666';
       // For 3DS, redirect to our 3DS page, then redirect to client URLs after auth
-      redirectUrl = `http://localhost:${PORT}/3ds?trx=${trx}&success_url=${encodeURIComponent(success_url)}&cancel_url=${encodeURIComponent(cancel_url)}&otp=${otpCode}`;
+      // Use dynamic base URL from request
+      redirectUrl = `${baseUrl}/3ds?trx=${trx}&success_url=${encodeURIComponent(success_url)}&cancel_url=${encodeURIComponent(cancel_url)}&otp=${otpCode}`;
     } else {
       // All other cards - return error
       return res.status(400).json({
@@ -261,7 +275,7 @@ app.post('/h2h/initiate', async (req, res) => {
     // Success URL is only used AFTER OTP validation in /3ds/authenticate
     if (requires3DS && redirectUrl && !redirectUrl.includes('/3ds')) {
       console.warn('3DS payment redirect_url should point to /3ds page, not success_url');
-      redirectUrl = `http://localhost:${PORT}/3ds?trx=${trx}&success_url=${encodeURIComponent(success_url)}&cancel_url=${encodeURIComponent(cancel_url)}&otp=${otpCode || ''}`;
+      redirectUrl = `${baseUrl}/3ds?trx=${trx}&success_url=${encodeURIComponent(success_url)}&cancel_url=${encodeURIComponent(cancel_url)}&otp=${otpCode || ''}`;
     }
     
     res.json({
@@ -670,16 +684,18 @@ app.get('/transactions', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
+  const serverUrl = `http://localhost:${PORT}`; // Default for console output, actual URLs are dynamic
   console.log('='.repeat(60));
   console.log(`🚀 WIPay Card Payment Sandbox Server`);
   console.log('='.repeat(60));
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`\n📋 Available Endpoints:`);
-  console.log(`  GET  http://localhost:${PORT}/              - Main test page`);
-  console.log(`  POST http://localhost:${PORT}/h2h/initiate  - Initiate payment`);
-  console.log(`  POST http://localhost:${PORT}/h2h/status    - Check payment status`);
-  console.log(`  GET  http://localhost:${PORT}/transactions  - View all transactions`);
-  console.log(`  POST http://localhost:${PORT}/ipn           - Test IPN endpoint`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`\n📋 Available Endpoints (use your server's domain/IP):`);
+  console.log(`  GET  /              - Main test page`);
+  console.log(`  POST /h2h/initiate  - Initiate payment`);
+  console.log(`  POST /h2h/status    - Check payment status`);
+  console.log(`  GET  /transactions  - View all transactions`);
+  console.log(`  POST /ipn           - Test IPN endpoint`);
+  console.log(`\n💡 Note: All URLs are dynamically generated from request origin`);
   console.log('='.repeat(60));
   console.log(`\n💡 Test Cards:`);
   console.log(`  ✅ 5356 2222 3333 4444 - Instant success (OK)`);
