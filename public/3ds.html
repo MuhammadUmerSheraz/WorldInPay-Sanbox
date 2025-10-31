@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Secure Authentication - WIPay Sandbox</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .bank-logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 18px;
+            letter-spacing: 4px;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .otp-hint {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+
+        .otp-hint strong {
+            font-size: 16px;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        button {
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-approve {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-cancel {
+            background: #dc3545;
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error {
+            background: #fee;
+            border: 2px solid #fcc;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="bank-logo">🏦</div>
+        <h1>3D Secure Authentication</h1>
+        <p class="subtitle">Please complete the authentication to proceed with your payment</p>
+
+        <div class="error" id="error"></div>
+
+        <div id="otpHint" class="otp-hint" style="display: none;">
+            <strong>Test OTP Code:</strong> <span id="otpCode"></span>
+        </div>
+
+        <form id="authForm">
+            <div class="form-group">
+                <label>Enter OTP Code</label>
+                <input type="text" id="otp" placeholder="666666" maxlength="6" pattern="[0-9]{6}">
+            </div>
+
+            <div class="buttons">
+                <button type="button" class="btn-approve" id="approveBtn">✓ Approve</button>
+                <button type="button" class="btn-cancel" id="cancelBtn">✗ Cancel</button>
+            </div>
+        </form>
+
+        <div class="loading" id="loading">
+            <p>Processing authentication...</p>
+        </div>
+    </div>
+
+    <script>
+        // Detect base URL - use localhost:3000 if opened via file:// protocol
+        const getBaseURL = () => {
+            if (window.location.protocol === 'file:') {
+                return 'http://localhost:3000';
+            }
+            return window.location.origin;
+        };
+        
+        const API_BASE_URL = getBaseURL();
+        
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const trx = urlParams.get('trx');
+        const otpCode = urlParams.get('otp');
+
+        // Show OTP hint if OTP is required
+        if (otpCode) {
+            document.getElementById('otpHint').style.display = 'block';
+            document.getElementById('otpCode').textContent = otpCode;
+            document.getElementById('otp').value = otpCode;
+        }
+
+        const approveBtn = document.getElementById('approveBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const errorDiv = document.getElementById('error');
+        const loadingDiv = document.getElementById('loading');
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        async function authenticate(action) {
+            if (!trx) {
+                showError('Transaction ID missing');
+                return;
+            }
+
+            approveBtn.disabled = true;
+            cancelBtn.disabled = true;
+            loadingDiv.classList.add('show');
+            errorDiv.classList.remove('show');
+
+            const otp = document.getElementById('otp').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/3ds/authenticate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        trx: trx,
+                        action: action,
+                        otp: otp || undefined
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    // Redirect to success URL
+                    window.location.href = result.redirect_url;
+                } else if (result.status === 'cancelled') {
+                    // Redirect to cancel URL
+                    window.location.href = result.redirect_url;
+                } else {
+                    showError(result.message || 'Authentication failed');
+                    approveBtn.disabled = false;
+                    cancelBtn.disabled = false;
+                    loadingDiv.classList.remove('show');
+                }
+
+            } catch (error) {
+                showError('Error: ' + error.message);
+                approveBtn.disabled = false;
+                cancelBtn.disabled = false;
+                loadingDiv.classList.remove('show');
+            }
+        }
+
+        approveBtn.addEventListener('click', () => authenticate('approve'));
+        cancelBtn.addEventListener('click', () => authenticate('cancel'));
+    </script>
+</body>
+</html>
+

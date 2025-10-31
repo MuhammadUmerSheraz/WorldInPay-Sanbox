@@ -1,20 +1,24 @@
 {
-  "name": "nodejs-sample-project",
+  "name": "wipay-card-sandbox",
   "version": "1.0.0",
-  "description": "A sample Node.js project",
+  "description": "Sandbox system for VISA and Mastercard card payments",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js"
   },
   "keywords": [
-    "nodejs",
-    "sample"
+    "payment",
+    "sandbox",
+    "visa",
+    "mastercard",
+    "card-payments"
   ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "uuid": "^9.0.0"
   }
 }
 
