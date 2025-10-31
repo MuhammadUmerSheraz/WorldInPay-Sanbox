@@ -260,24 +260,12 @@
     </div>
 
     <script>
-        // Detect base URL - use localhost:3000 if opened via file:// protocol
+        // Always use dynamic URL from the current origin
         const getBaseURL = () => {
-            if (window.location.protocol === 'file:') {
-                return 'http://localhost:3000';
-            }
             return window.location.origin;
         };
         
         const API_BASE_URL = getBaseURL();
-        
-        // Warn if opened via file://
-        if (window.location.protocol === 'file:') {
-            console.warn('⚠️ Page opened via file:// protocol. Please access via http://localhost:3000 for full functionality.');
-            const warning = document.createElement('div');
-            warning.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #ffc107; color: #333; padding: 10px; text-align: center; z-index: 10000; font-weight: bold;';
-            warning.innerHTML = '⚠️ Please access this page via <a href="http://localhost:3000" style="color: #0066cc;">http://localhost:3000</a> instead of file://';
-            document.body.insertBefore(warning, document.body.firstChild);
-        }
         
         const form = document.getElementById('paymentForm');
         const errorDiv = document.getElementById('error');

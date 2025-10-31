@@ -148,11 +148,8 @@
     </div>
 
     <script>
-        // Detect base URL - use localhost:3000 if opened via file:// protocol
+        // Always use dynamic URL from the current origin
         const getBaseURL = () => {
-            if (window.location.protocol === 'file:') {
-                return 'http://localhost:3000';
-            }
             return window.location.origin;
         };
         
