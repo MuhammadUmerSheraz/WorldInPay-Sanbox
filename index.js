@@ -129,6 +129,14 @@ app.post('/h2h/initiate', async (req, res) => {
       errors.push('card information is incomplete');
     }
     
+    // Validate expiry_year format - must be 2 digits
+    if (card && card.expiry_year !== undefined) {
+      const yearStr = card.expiry_year.toString();
+      if (!/^\d{2}$/.test(yearStr)) {
+        errors.push('expiry_year must be 2 digits (e.g., 31 for 2031)');
+      }
+    }
+    
     if (!billing_address || !billing_address.country) {
       errors.push('billing_address.country is required');
     }
@@ -172,8 +180,16 @@ app.post('/h2h/initiate', async (req, res) => {
       });
     }
 
+    // Convert 2-digit year to 4-digit for validation
+    // expiry_year must be provided as 2 digits (e.g., 31 for 2031)
+    let expiryYear = parseInt(card.expiry_year);
+    if (expiryYear < 100) {
+      // 2-digit year: add 2000 to convert to 4-digit (00-99 = 2000-2099)
+      expiryYear = 2000 + expiryYear;
+    }
+    
     // Validate card expiry
-    if (!validateCardExpiry(card.expiry_month, card.expiry_year)) {
+    if (!validateCardExpiry(card.expiry_month, expiryYear)) {
       return res.status(400).json({
         status: 'error',
         message: ['Card has expired or invalid expiry date']
@@ -241,6 +257,7 @@ app.post('/h2h/initiate', async (req, res) => {
       card: {
         ...card,
         number: card.number.replace(/\d(?=\d{4})/g, '*'), // Mask card number
+        expiry_year: expiryYear, // Use converted 4-digit year for storage
         type: cardBrand
       },
       billing_address,
@@ -684,7 +701,6 @@ app.get('/transactions', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  const serverUrl = `http://localhost:${PORT}`; // Default for console output, actual URLs are dynamic
   console.log('='.repeat(60));
   console.log(`🚀 WIPay Card Payment Sandbox Server`);
   console.log('='.repeat(60));

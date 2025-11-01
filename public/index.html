@@ -211,12 +211,17 @@
                     <label>Expiry Year</label>
                     <select id="expiryYear" required>
                         <option value="">Year</option>
-                        <option value="2025">2025</option>
-                        <option value="2026" selected>2026</option>
-                        <option value="2027">2027</option>
-                        <option value="2028">2028</option>
-                        <option value="2029">2029</option>
-                        <option value="2030">2030</option>
+                        <option value="25">25</option>
+                        <option value="26" selected>26</option>
+                        <option value="27">27</option>
+                        <option value="28">28</option>
+                        <option value="29">29</option>
+                        <option value="30">30</option>
+                        <option value="31">31</option>
+                        <option value="32">32</option>
+                        <option value="33">33</option>
+                        <option value="34">34</option>
+                        <option value="35">35</option>
                     </select>
                 </div>
             </div>
@@ -290,7 +295,9 @@
 
             const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
             const expiryMonth = parseInt(document.getElementById('expiryMonth').value);
-            const expiryYear = parseInt(document.getElementById('expiryYear').value);
+            const expiryYearStr = document.getElementById('expiryYear').value;
+            // Ensure expiry_year is 2 digits (e.g., "26" not 2026)
+            const expiryYear = parseInt(expiryYearStr);
             const cvv = document.getElementById('cvv').value;
             const cardHolder = document.getElementById('cardHolder').value;
             const amount = parseFloat(document.getElementById('amount').value);
@@ -311,7 +318,7 @@
                 card: {
                     number: cardNumber,
                     expiry_month: expiryMonth,
-                    expiry_year: expiryYear,
+                    expiry_year: expiryYear, // Already 2 digits from dropdown (e.g., 26 for 2026)
                     cvv: cvv,
                     holder: cardHolder
                 },
